@@ -32,6 +32,16 @@ body {
   align-items: center;
   gap: 12px;
 }
+.auth {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth input[type="password"] {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
 .bar {
   width: 200px;
   height: 8px;
@@ -258,3 +268,19 @@ button.secondary {
   padding-top: 12px;
 }
 .hint { color: var(--muted); }
+
+.answers {
+  margin-top: 16px;
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+}
+.answers h3 { margin: 0 0 8px 0; }
+.answers .block {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+}
+.answers .block h4 { margin: 0 0 6px 0; }
+.muted { color: var(--muted); }

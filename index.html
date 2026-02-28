@@ -13,6 +13,19 @@
       <span id="progressText">进度：0 / 18</span>
       <div class="bar"><div id="progressBar" class="bar-fill"></div></div>
     </div>
+    <div class="auth">
+      <label>
+        角色：
+        <select id="roleSelect">
+          <option value="student">学生</option>
+          <option value="parent">家长</option>
+        </select>
+      </label>
+      <input id="parentPwd" class="hidden" type="password" placeholder="家长密码" />
+      <button id="loginBtn">登录</button>
+      <span id="userStatus" class="muted"></span>
+      <button id="toggleAnswers" class="secondary hidden">显示/隐藏参考答案</button>
+    </div>
   </header>
 
   <main class="container">
@@ -143,6 +156,11 @@
         <button id="finishPoem" class="primary">本诗过关</button>
         <span id="unlockHint" class="hint">需完成所有模块方可过关</span>
       </footer>
+
+      <section id="answersPanel" class="answers hidden">
+        <h3>参考答案</h3>
+        <div id="answersContent"></div>
+      </section>
     </section>
   </main>
 

@@ -356,6 +356,13 @@ const vocabChoicesEl = document.getElementById("vocabChoices");
 const submitVocabBtn = document.getElementById("submitVocab");
 const resetVocabBtn = document.getElementById("resetVocab");
 const vocabStatusEl = document.getElementById("vocabStatus");
+const roleSelectEl = document.getElementById("roleSelect");
+const parentPwdEl = document.getElementById("parentPwd");
+const loginBtnEl = document.getElementById("loginBtn");
+const userStatusEl = document.getElementById("userStatus");
+const toggleAnswersBtn = document.getElementById("toggleAnswers");
+const answersPanelEl = document.getElementById("answersPanel");
+const answersContentEl = document.getElementById("answersContent");
 
 document.querySelectorAll(".tab").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -369,6 +376,37 @@ document.querySelectorAll(".tab").forEach(btn => {
 gradeFilterEl.addEventListener("change", renderPoemList);
 termFilterEl.addEventListener("change", renderPoemList);
 statusFilterEl.addEventListener("change", renderPoemList);
+roleSelectEl.addEventListener("change", () => {
+  const v = roleSelectEl.value;
+  parentPwdEl.classList.toggle("hidden", v !== "parent");
+});
+loginBtnEl.addEventListener("click", () => {
+  const v = roleSelectEl.value;
+  if (v === "parent") {
+    const pwd = parentPwdEl.value || "";
+    if (pwd !== "888888") {
+      alert("家长密码错误");
+      return;
+    }
+    state.role = "parent";
+  } else {
+    state.role = "student";
+  }
+  localStorage.setItem("role", state.role);
+  applyRoleUI();
+  if (state.role === "parent" && state.currentPoemId) {
+    buildAnswers(currentPoem());
+  }
+});
+toggleAnswersBtn.addEventListener("click", () => {
+  const showing = !answersPanelEl.classList.contains("hidden");
+  if (showing) {
+    answersPanelEl.classList.add("hidden");
+  } else {
+    answersPanelEl.classList.remove("hidden");
+    if (state.currentPoemId) buildAnswers(currentPoem());
+  }
+});
 
 function renderProgress() {
   const total = POEMS.length;
@@ -426,6 +464,9 @@ function selectPoem(id, currentList = null) {
   buildDictation(poem);
   buildSegmentation(poem);
   buildVocab(poem);
+  if (state.role === "parent" && !answersPanelEl.classList.contains("hidden")) {
+    buildAnswers(poem);
+  }
   updateFooter(poem);
 }
 
@@ -697,6 +738,76 @@ submitVocabBtn.addEventListener("click", () => {
 });
 resetVocabBtn.addEventListener("click", () => buildVocab(currentPoem()));
 
+function buildAnswers(poem) {
+  const blocks = [];
+  const meaningBlock = document.createElement("div");
+  meaningBlock.className = "block";
+  const mbTitle = document.createElement("h4");
+  mbTitle.textContent = "释义自测答案";
+  meaningBlock.appendChild(mbTitle);
+  poem.qa.forEach((qa, i) => {
+    const p = document.createElement("p");
+    const ansText = qa.options[qa.answer];
+    p.textContent = `问题${i + 1}：${ansText}`;
+    meaningBlock.appendChild(p);
+  });
+  blocks.push(meaningBlock);
+
+  const funcBlock = document.createElement("div");
+  funcBlock.className = "block";
+  const fbTitle = document.createElement("h4");
+  fbTitle.textContent = "虚实词自测答案";
+  funcBlock.appendChild(fbTitle);
+  const aList = document.createElement("p");
+  const candidates = buildFunctionCandidates(poem);
+  const correctA = candidates.filter(c => c.isFunction).map(c => c.text);
+  aList.textContent = `A. 虚词选项：${correctA.join("、") || "无"}`;
+  funcBlock.appendChild(aList);
+  const bList = document.createElement("p");
+  const pfw = poemFunctionWords(poem);
+  bList.textContent = `B. 本诗虚词：${pfw.join("、") || "无"}`;
+  funcBlock.appendChild(bList);
+  blocks.push(funcBlock);
+
+  const dictBlock = document.createElement("div");
+  dictBlock.className = "block";
+  const dbTitle = document.createElement("h4");
+  dbTitle.textContent = "据义默写答案";
+  dictBlock.appendChild(dbTitle);
+  const dbText = document.createElement("p");
+  if (state.dictationBlanks.length > 0) {
+    const answers = state.dictationBlanks.map(b => b.answer).join("、");
+    dbText.textContent = `当前空格正确字符：${answers}`;
+  } else {
+    dbText.textContent = "请先生成本次默写题（进入据义默写模块）";
+  }
+  dictBlock.appendChild(dbText);
+  blocks.push(dictBlock);
+
+  const segBlock = document.createElement("div");
+  segBlock.className = "block";
+  const sbTitle = document.createElement("h4");
+  sbTitle.textContent = "断句自测答案";
+  segBlock.appendChild(sbTitle);
+  const sbPre = document.createElement("pre");
+  sbPre.textContent = poem.lines.join("\n");
+  segBlock.appendChild(sbPre);
+  blocks.push(segBlock);
+
+  const vocabBlock = document.createElement("div");
+  vocabBlock.className = "block";
+  const vbTitle = document.createElement("h4");
+  vbTitle.textContent = "字词识记答案";
+  vocabBlock.appendChild(vbTitle);
+  const vbText = document.createElement("p");
+  vbText.textContent = `本诗关键词：${(poem.keywords || []).join("、") || "无"}`;
+  vocabBlock.appendChild(vbText);
+  blocks.push(vocabBlock);
+
+  answersContentEl.innerHTML = "";
+  blocks.forEach(b => answersContentEl.appendChild(b));
+}
+
 finishPoemBtn.addEventListener("click", () => {
   const poem = currentPoem();
   const modulesPassed = getModulePassed();
@@ -764,7 +875,20 @@ function currentPoem() {
 }
 
 renderProgress();
+gradeFilterEl.value = "3";
 termFilterEl.value = "下";
 renderPoemList();
-const filteredDefault = POEMS.filter(p => p.term === "下");
+const filteredDefault = POEMS.filter(p => p.grade === 3 && p.term === "下");
 if (filteredDefault.length > 0) selectPoem(filteredDefault[0].id, filteredDefault);
+state.role = localStorage.getItem("role") || "student";
+roleSelectEl.value = state.role;
+parentPwdEl.classList.toggle("hidden", state.role !== "parent");
+applyRoleUI();
+
+function applyRoleUI() {
+  userStatusEl.textContent = `已登录：${state.role === "parent" ? "家长" : "学生"}`;
+  toggleAnswersBtn.classList.toggle("hidden", state.role !== "parent");
+  if (state.role !== "parent") {
+    answersPanelEl.classList.add("hidden");
+  }
+}
