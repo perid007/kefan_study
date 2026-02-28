@@ -277,21 +277,7 @@ const POEMS = [
   }
 ];
 
-const COMMON_FUNCTION_WORDS = ["之", "其", "而", "于", "以", "者", "也", "乃", "若", "且", "与", "焉", "所", "则", "乎"];
-
-function buildFunctionCandidates(poem) {
-  const virtual = shuffle(COMMON_FUNCTION_WORDS).slice(0, 6);
-  const text = poem.lines.join("");
-  const chars = Array.from(text.replace(/[，。！？、；：\s]/g, ""));
-  const contentCandidates = shuffle(chars).slice(0, 8);
-  const mix = shuffle([...virtual, ...contentCandidates]);
-  return mix.map(t => ({ text: t, isFunction: COMMON_FUNCTION_WORDS.includes(t) }));
-}
-function poemFunctionWords(poem) {
-  const set = new Set(COMMON_FUNCTION_WORDS);
-  const chars = Array.from(poem.lines.join(""));
-  return [...new Set(chars.filter(c => set.has(c)))];
-}
+// 已移除虚实词自测模块相关逻辑
 
 const STORAGE_KEY = "poem_mastery_v2";
 function loadProgress() {
@@ -309,9 +295,6 @@ function saveProgress(state) {
 let state = {
   progress: loadProgress(),
   currentPoemId: null,
-  functionCandidates: [],
-  functionSelected: new Set(),
-  functionPoemSelected: new Set(),
   dictationBlanks: [],
   segmentationGaps: new Set(),
   segmentationTargets: new Set(),
@@ -338,11 +321,6 @@ const meaningQuestionsEl = document.getElementById("meaningQuestions");
 const submitMeaningBtn = document.getElementById("submitMeaning");
 const resetMeaningBtn = document.getElementById("resetMeaning");
 const meaningStatusEl = document.getElementById("meaningStatus");
-const functionChoicesEl = document.getElementById("functionChoices");
-const functionPoemEl = document.getElementById("functionPoem");
-const submitFunctionBtn = document.getElementById("submitFunction");
-const resetFunctionBtn = document.getElementById("resetFunction");
-const functionStatusEl = document.getElementById("functionStatus");
 const dictationAreaEl = document.getElementById("dictationArea");
 const submitDictationBtn = document.getElementById("submitDictation");
 const resetDictationBtn = document.getElementById("resetDictation");
@@ -460,7 +438,6 @@ function selectPoem(id, currentList = null) {
   poemTextEl.style.filter = "none";
 
   buildMeaning(poem);
-  buildFunction(poem);
   buildDictation(poem);
   buildSegmentation(poem);
   buildVocab(poem);
@@ -515,82 +492,7 @@ submitMeaningBtn.addEventListener("click", () => {
 });
 resetMeaningBtn.addEventListener("click", () => buildMeaning(currentPoem()));
 
-function buildFunction(poem) {
-  functionStatusEl.textContent = "";
-  functionStatusEl.className = "status";
-  state.functionSelected = new Set();
-  state.functionPoemSelected = new Set();
-  state.functionCandidates = buildFunctionCandidates(poem);
-
-  functionChoicesEl.innerHTML = "";
-  state.functionCandidates.forEach((c, idx) => {
-    const label = document.createElement("label");
-    label.className = "choice";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.addEventListener("change", () => {
-      if (input.checked) state.functionSelected.add(idx);
-      else state.functionSelected.delete(idx);
-    });
-    const span = document.createElement("span");
-    span.textContent = c.text;
-    label.appendChild(input);
-    label.appendChild(span);
-    functionChoicesEl.appendChild(label);
-  });
-
-  functionPoemEl.innerHTML = "";
-  const chars = Array.from(poem.lines.join(""));
-  chars.forEach((ch, i) => {
-    const isChar = !/[，。！？、；：\s]/.test(ch);
-    const el = document.createElement("span");
-    el.textContent = ch;
-    el.className = "char" + (isChar ? "" : " muted");
-    if (isChar) {
-      el.addEventListener("click", () => {
-        const key = `${ch}-${i}`;
-        if (state.functionPoemSelected.has(key)) {
-          state.functionPoemSelected.delete(key);
-          el.classList.remove("selected");
-        } else {
-          state.functionPoemSelected.add(key);
-          el.classList.add("selected");
-        }
-      });
-    }
-    functionPoemEl.appendChild(el);
-  });
-}
-submitFunctionBtn.addEventListener("click", () => {
-  const A_correctIdx = state.functionCandidates
-    .map((c, idx) => ({ idx, isFunction: c.isFunction }))
-    .filter(x => x.isFunction)
-    .map(x => x.idx);
-  const A_selected = [...state.functionSelected].sort((a, b) => a - b);
-  const A_ok = arraysEqual(A_selected, A_correctIdx);
-
-  const poem = currentPoem();
-  const targetSet = new Set(poemFunctionWords(poem));
-  const B_selectedChars = new Set(
-    [...state.functionPoemSelected].map(key => key.split("-")[0])
-  );
-  let B_ok = true;
-  for (const ch of B_selectedChars) {
-    if (!targetSet.has(ch)) { B_ok = false; break; }
-  }
-  if (targetSet.size > 0 && B_selectedChars.size === 0) B_ok = false;
-
-  if (A_ok && B_ok) {
-    setModulePassed("function", true);
-    functionStatusEl.textContent = "虚实词自测通过";
-    functionStatusEl.className = "status ok";
-  } else {
-    functionStatusEl.textContent = "请检查虚词选择或诗中点选";
-    functionStatusEl.className = "status warn";
-  }
-  updateFooter();
-});
-resetFunctionBtn.addEventListener("click", () => buildFunction(currentPoem()));
+// 已移除虚实词自测模块
 
 function buildDictation(poem) {
   dictationStatusEl.textContent = "";
@@ -604,16 +506,37 @@ function buildDictation(poem) {
   const blanks = shuffle(candidates).slice(0, Math.min(6, Math.max(3, Math.floor(candidates.length / 12))));
   const blankSet = new Set(blanks.map(b => b.i));
   const container = document.createElement("div");
+  // 构建可供干扰的字符池
+  const pool = candidates.map(c => c.ch);
   chars.forEach((ch, i) => {
     if (blankSet.has(i)) {
       const span = document.createElement("span");
       span.className = "blank";
-      const input = document.createElement("input");
-      input.maxLength = 1;
-      input.dataset.index = i;
-      span.appendChild(input);
+      // 为该空格生成两个干扰项
+      const distractorSet = new Set();
+      while (distractorSet.size < 2) {
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick && pick !== ch) distractorSet.add(pick);
+        // 极端情况下池子太小，退出避免死循环
+        if (pool.length <= 1) break;
+      }
+      const choices = shuffle([ch, ...distractorSet]);
+      const group = document.createElement("div");
+      group.className = "mini-choices";
+      choices.forEach(opt => {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `dict${i}`;
+        input.value = opt;
+        label.appendChild(input);
+        const t = document.createTextNode(opt);
+        label.appendChild(t);
+        group.appendChild(label);
+      });
+      span.appendChild(group);
       container.appendChild(span);
-      state.dictationBlanks.push({ index: i, answer: ch, input });
+      state.dictationBlanks.push({ index: i, answer: ch, choices });
     } else {
       const t = document.createTextNode(ch);
       container.appendChild(t);
@@ -624,7 +547,8 @@ function buildDictation(poem) {
 submitDictationBtn.addEventListener("click", () => {
   let ok = true;
   state.dictationBlanks.forEach(b => {
-    const val = (b.input.value || "").trim();
+    const sel = document.querySelector(`input[name="dict${b.index}"]:checked`);
+    const val = sel ? sel.value : "";
     if (val !== b.answer) ok = false;
   });
   if (ok) {
@@ -753,22 +677,6 @@ function buildAnswers(poem) {
   });
   blocks.push(meaningBlock);
 
-  const funcBlock = document.createElement("div");
-  funcBlock.className = "block";
-  const fbTitle = document.createElement("h4");
-  fbTitle.textContent = "虚实词自测答案";
-  funcBlock.appendChild(fbTitle);
-  const aList = document.createElement("p");
-  const candidates = buildFunctionCandidates(poem);
-  const correctA = candidates.filter(c => c.isFunction).map(c => c.text);
-  aList.textContent = `A. 虚词选项：${correctA.join("、") || "无"}`;
-  funcBlock.appendChild(aList);
-  const bList = document.createElement("p");
-  const pfw = poemFunctionWords(poem);
-  bList.textContent = `B. 本诗虚词：${pfw.join("、") || "无"}`;
-  funcBlock.appendChild(bList);
-  blocks.push(funcBlock);
-
   const dictBlock = document.createElement("div");
   dictBlock.className = "block";
   const dbTitle = document.createElement("h4");
@@ -811,7 +719,7 @@ function buildAnswers(poem) {
 finishPoemBtn.addEventListener("click", () => {
   const poem = currentPoem();
   const modulesPassed = getModulePassed();
-  if (modulesPassed.recite && modulesPassed.meaning && modulesPassed.function && modulesPassed.dictation && modulesPassed.segmentation && modulesPassed.vocab) {
+  if (modulesPassed.recite && modulesPassed.meaning && modulesPassed.dictation && modulesPassed.segmentation && modulesPassed.vocab) {
     if (!state.progress.passed.includes(poem.id)) {
       state.progress.passed.push(poem.id);
       saveProgress(state.progress);
@@ -821,7 +729,7 @@ finishPoemBtn.addEventListener("click", () => {
     alert("恭喜过关！下一首已解锁。");
     selectNext(poem.id);
   } else {
-    alert("需完成背诵、释义自测、虚实词自测、据义默写、断句自测、字词识记六个模块后才能过关。");
+    alert("需完成背诵、释义自测、据义默写、断句自测、字词识记五个模块后才能过关。");
   }
   updateFooter();
 });
@@ -848,11 +756,11 @@ function setModulePassed(module, passed) {
 function getModulePassed() {
   const pid = state.currentPoemId;
   const m = (state.progress.modules[pid] || {});
-  return { recite: !!m.recite, meaning: !!m.meaning, function: !!m.function, dictation: !!m.dictation, segmentation: !!m.segmentation, vocab: !!m.vocab };
+  return { recite: !!m.recite, meaning: !!m.meaning, dictation: !!m.dictation, segmentation: !!m.segmentation, vocab: !!m.vocab };
 }
 function updateFooter() {
   const passed = getModulePassed();
-  const ok = passed.recite && passed.meaning && passed.function && passed.dictation && passed.segmentation && passed.vocab;
+  const ok = passed.recite && passed.meaning && passed.dictation && passed.segmentation && passed.vocab;
   finishPoemBtn.disabled = !ok;
   document.getElementById("unlockHint").style.display = ok ? "none" : "inline";
 }

@@ -205,6 +205,21 @@ button.secondary {
   text-align: center;
   font-size: 16px;
 }
+.mini-choices {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.mini-choices label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+.mini-choices input { transform: scale(1.05); }
 .seg-char {
   padding: 4px 6px;
   border-radius: 6px;
