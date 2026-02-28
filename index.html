@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>古诗闯关（人教版三四年级）</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>古诗闯关（人教版·三四年级）</h1>
+    <div class="progress">
+      <span id="progressText">进度：0 / 18</span>
+      <div class="bar"><div id="progressBar" class="bar-fill"></div></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <aside class="sidebar">
+      <div class="filters">
+        <label>
+          年级：
+          <select id="gradeFilter">
+            <option value="all">全部</option>
+            <option value="3">三年级</option>
+            <option value="4">四年级</option>
+          </select>
+        </label>
+        <label>
+          学期：
+          <select id="termFilter">
+            <option value="all">全部</option>
+            <option value="上">上册</option>
+            <option value="下" selected>下册</option>
+          </select>
+        </label>
+        <label>
+          状态：
+          <select id="statusFilter">
+            <option value="all">全部</option>
+            <option value="locked">未解锁</option>
+            <option value="open">可学习</option>
+            <option value="passed">已过关</option>
+          </select>
+        </label>
+      </div>
+      <ul id="poemList" class="poem-list"></ul>
+    </aside>
+
+    <section class="content">
+      <div id="poemHeader" class="poem-header">
+        <h2 id="poemTitle">请选择一首古诗开始闯关</h2>
+        <div id="poemMeta" class="poem-meta"></div>
+      </div>
+
+      <div id="lockNotice" class="lock-notice hidden">
+        本诗尚未解锁，请先完成前一首的闯关。
+      </div>
+
+      <div id="modules" class="modules hidden">
+        <nav class="tabs">
+          <button class="tab active" data-tab="recite">背诵</button>
+          <button class="tab" data-tab="meaning">释义自测</button>
+          <button class="tab" data-tab="function">虚实词自测</button>
+          <button class="tab" data-tab="dictation">据义默写</button>
+          <button class="tab" data-tab="segmentation">断句自测</button>
+          <button class="tab" data-tab="vocab">字词识记</button>
+        </nav>
+
+        <div class="tab-panel active" id="panel-recite">
+          <div class="poem-text">
+            <pre id="poemText"></pre>
+          </div>
+          <div class="recite-controls">
+            <button id="toggleHide">隐藏/显示内容</button>
+            <button id="markRecitePass">背过了</button>
+          </div>
+          <div id="reciteStatus" class="status"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-meaning">
+          <div id="meaningQuestions" class="questions"></div>
+          <div class="panel-actions">
+            <button id="submitMeaning">提交答案</button>
+            <button id="resetMeaning" class="secondary">重做</button>
+          </div>
+          <div id="meaningStatus" class="status"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-function">
+          <div class="function-desc">
+            常见文言虚词包括：之、其、而、于、以、者、也、乃、若、且、与、焉、所、则、乎 等。
+          </div>
+          <h4>A. 选择下列词语中属于“虚词”的选项</h4>
+          <div id="functionChoices" class="choices"></div>
+          <h4>B. 在诗中点选你认为是“虚词”的字（若无则无需点选）</h4>
+          <div id="functionPoem" class="function-poem"></div>
+          <div class="panel-actions">
+            <button id="submitFunction">提交判定</button>
+            <button id="resetFunction" class="secondary">重做</button>
+          </div>
+          <div id="functionStatus" class="status"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-dictation">
+          <div class="dictation-desc">
+            根据诗意回忆缺失的字词，完成填空。
+          </div>
+          <div id="dictationArea" class="dictation-area"></div>
+          <div class="panel-actions">
+            <button id="submitDictation">提交默写</button>
+            <button id="resetDictation" class="secondary">重做</button>
+          </div>
+          <div id="dictationStatus" class="status"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-segmentation">
+          <div class="segmentation-desc">
+            将下方连续文字划分为原诗的行（本诗应为 <span id="segmentationLineCount">0</span> 行）。
+          </div>
+          <div id="segmentationArea" class="segmentation-area"></div>
+          <div class="panel-actions">
+            <button id="submitSegmentation">提交断句</button>
+            <button id="resetSegmentation" class="secondary">重做</button>
+          </div>
+          <div id="segmentationStatus" class="status"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-vocab">
+          <div class="vocab-desc">
+            勾选本诗的关键词（意象/核心词）。
+          </div>
+          <div id="vocabChoices" class="choices"></div>
+          <div class="panel-actions">
+            <button id="submitVocab">提交识记</button>
+            <button id="resetVocab" class="secondary">重做</button>
+          </div>
+          <div id="vocabStatus" class="status"></div>
+        </div>
+      </div>
+
+      <footer class="footer-actions hidden" id="footerActions">
+        <button id="finishPoem" class="primary">本诗过关</button>
+        <span id="unlockHint" class="hint">需完成所有模块方可过关</span>
+      </footer>
+    </section>
+  </main>
+
+  <template id="choiceTemplate">
+    <label class="choice">
+      <input type="checkbox" />
+      <span class="text"></span>
+    </label>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>
